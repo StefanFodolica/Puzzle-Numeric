@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Puzzle numeric</title>
+    <style>
+      .container {
+        text-align: center;
+        margin-top: 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #nameInput {
+        margin-bottom: 20px;
+        border: solid black 2px;
+        padding: 16px 16px;
+        text-align: center;
+        font-family: "BasicCommercial LT Roman";
+        font-size: 24px;
+      }
+      .size-buttons button {
+        font-size: 24px;
+        margin: 0px 16px;
+        padding: 4px 16px;
+        background-color: #f0c090;
+        opacity: 0.7;
+        cursor: pointer;
+        font-family: "BasicCommercial LT Roman";
+      }
+      .size-buttons button:hover {
+        opacity: 1;
+      }
+      .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .grid {
+        display: grid;
+        font-family: "BasicCommercial LT Roman";
+        margin-bottom: 20px;
+      }
+      .grid-3x3 {
+        grid-template-columns: repeat(3, 100px);
+      }
+      .grid-4x4 {
+        grid-template-columns: repeat(4, 100px);
+      }
+      .grid-5x5 {
+        grid-template-columns: repeat(5, 100px);
+      }
+      .tile {
+        width: 100px;
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0c090;
+        font-size: 40px;
+        cursor: pointer;
+        border: solid black 2px;
+        font-family: "BasicCommercial LT Roman";
+      }
+      .tile.empty {
+        background-color: grey;
+        border: solid black 2px;
+      }
+      .leaderboard,
+      .result-message,
+      .result-buttons {
+        margin-top: 20px;
+      }
+      .result-message {
+        font-family: "BasicCommercial LT Roman";
+        font-size: 24px;
+        text-align: center;
+      }
+      .result-buttons {
+        display: grid;
+        background-color: #ffffff;
+      }
+      .result-buttons button {
+        background-color: #3f51b4;
+        color: white;
+        font-family: "BasicCommercial LT Roman";
+        font-size: 24px;
+        margin-bottom: 32px;
+        padding: 16px 16px;
+        border-radius: 16px;
+        cursor: pointer;
+      }
+      .result-buttons button:hover {
+        background-color: #5e6bb8;
+        color: white;
+        font-family: "BasicCommercial LT Roman";
+        font-size: 24px;
+        margin-bottom: 32px;
+        padding: 16px 16px;
+        border-radius: 16px;
+        cursor: pointer;
+      }
+      #leaderboardScreen button {
+        background-color: #3f51b4;
+        color: white;
+        font-family: "BasicCommercial LT Roman";
+        font-size: 24px;
+        margin-bottom: 32px;
+        padding: 16px 16px;
+        border-radius: 16px;
+        cursor: pointer;
+      }
+      #leaderboardScreen button:hover {
+        background-color: #3f51b4;
+      }
+      .hidden {
+        display: none;
+      }
+      h1 {
+        font-family: "BasicCommercial LT Roman";
+        font-size: 48px;
+        font-weight: bold;
+      }
+      .leaderboard-item {
+        font-family: "BasicCommercial LT Roman";
+        font-size: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="initialScreen">
+        <input type="text" id="nameInput" placeholder="Enter your name" />
+        <div class="size-buttons">
+          <button onclick="startGame(3)">3x3</button>
+          <button onclick="startGame(4)">4x4</button>
+          <button onclick="startGame(5)">5x5</button>
+        </div>
+      </div>
+      <div id="gameScreen" class="hidden">
+        <div class="game-container">
+          <div id="grid" class="grid"></div>
+          <div id="resultMessage" class="result-message"></div>
+          <div class="result-buttons hidden" id="resultButtons">
+            <button onclick="showInitialScreen()">Play Again</button>
+            <button onclick="showLeaderboard()">Vezi clasament</button>
+          </div>
+        </div>
+      </div>
+      <div id="leaderboardScreen" class="hidden">
+        <h1>Leaderboard</h1>
+        <ul id="leaderboardList"></ul>
+        <button onclick="showInitialScreen()">Play Again</button>
+      </div>
+    </div>
+
+    <script>
+      let gridSize;
+      let emptyCell;
+      let startTime;
+      let moveCount;
+      let playerName;
+
+      document
+        .getElementById("nameInput")
+        .addEventListener("focus", function () {
+          this.dataset.placeholder = this.placeholder;
+          this.placeholder = "";
+        });
+
+      document
+        .getElementById("nameInput")
+        .addEventListener("blur", function () {
+          if (!this.value) {
+            this.placeholder = this.dataset.placeholder;
+          }
+        });
+
+      function startGame(size) {
+        gridSize = size;
+        playerName = document.getElementById("nameInput").value;
+        if (!playerName) {
+          alert("Please enter your name.");
+          return;
+        }
+
+        document.getElementById("initialScreen").classList.add("hidden");
+        document.getElementById("gameScreen").classList.remove("hidden");
+
+        const grid = document.getElementById("grid");
+        grid.className = `grid grid-${size}x${size}`;
+        generateGrid(size);
+        startTime = new Date();
+        moveCount = 0;
+        document.addEventListener("keydown", handleKeyPress);
+      }
+
+      function generateGrid(size) {
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+
+        let numbers = generateSolvableGrid(size);
+        numbers.forEach((num, index) => {
+          const tile = document.createElement("div");
+          tile.classList.add("tile");
+          if (num === "") {
+            tile.classList.add("empty");
+            emptyCell = index;
+          }
+          tile.innerText = num;
+          grid.appendChild(tile);
+        });
+      }
+
+      function generateSolvableGrid(size) {
+        const numbers = [];
+        for (let i = 1; i < size * size; i++) {
+          numbers.push(i);
+        }
+        numbers.push("");
+
+        let emptyCell = size * size - 1;
+        for (let i = 0; i < 500; i++) {
+          const possibleMoves = getValidMoves(emptyCell, size);
+          const move =
+            possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+          [numbers[emptyCell], numbers[move]] = [
+            numbers[move],
+            numbers[emptyCell],
+          ];
+          emptyCell = move;
+        }
+        return numbers;
+      }
+
+      function getValidMoves(emptyCell, size) {
+        const moves = [];
+        const row = Math.floor(emptyCell / size);
+        const col = emptyCell % size;
+
+        if (row > 0) moves.push(emptyCell - size); // Move up
+        if (row < size - 1) moves.push(emptyCell + size); // Move down
+        if (col > 0) moves.push(emptyCell - 1); // Move left
+        if (col < size - 1) moves.push(emptyCell + 1); // Move right
+
+        return moves;
+      }
+
+      function handleKeyPress(event) {
+        let targetIndex;
+        switch (event.key) {
+          case "ArrowUp":
+            targetIndex = emptyCell + gridSize;
+            break;
+          case "ArrowDown":
+            targetIndex = emptyCell - gridSize;
+            break;
+          case "ArrowLeft":
+            targetIndex = emptyCell + 1;
+            break;
+          case "ArrowRight":
+            targetIndex = emptyCell - 1;
+            break;
+          default:
+            return;
+        }
+
+        if (isValidMove(targetIndex)) {
+          moveTile(targetIndex);
+          moveCount++;
+        }
+      }
+
+      function moveTile(index) {
+        const grid = document.getElementById("grid");
+        const tiles = Array.from(grid.children);
+
+        [tiles[index].innerText, tiles[emptyCell].innerText] = [
+          tiles[emptyCell].innerText,
+          tiles[index].innerText,
+        ];
+
+        tiles[index].classList.toggle("empty");
+        tiles[emptyCell].classList.toggle("empty");
+        emptyCell = index;
+
+        if (isSolved()) {
+          const timeTaken = Math.round((new Date() - startTime) / 1000);
+          document.getElementById(
+            "resultMessage"
+          ).innerText = `Game finished with ${moveCount} moves in ${timeTaken} seconds.`;
+          document.getElementById("resultButtons").classList.remove("hidden");
+          updateLeaderboard(playerName, timeTaken, moveCount);
+          document.removeEventListener("keydown", handleKeyPress);
+        }
+      }
+
+      function isValidMove(index) {
+        if (index < 0 || index >= gridSize * gridSize) return false;
+
+        const row = Math.floor(index / gridSize);
+        const col = index % gridSize;
+
+        const emptyRow = Math.floor(emptyCell / gridSize);
+        const emptyCol = emptyCell % gridSize;
+
+        return (
+          (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
+          (col === emptyCol && Math.abs(row - emptyRow) === 1)
+        );
+      }
+
+      function isSolved() {
+        const tiles = Array.from(document.getElementById("grid").children);
+        for (let i = 0; i < tiles.length - 1; i++) {
+          if (tiles[i].innerText !== (i + 1).toString()) {
+            return false;
+          }
+        }
+        return tiles[tiles.length - 1].innerText === "";
+      }
+
+      function updateLeaderboard(name, time, moves) {
+        const leaderboard = document.getElementById("leaderboardList");
+        const newItem = document.createElement("li");
+        newItem.innerText = `${name} - ${time} seconds, ${moves} moves.`;
+        newItem.classList.add("leaderboard-item");
+        leaderboard.appendChild(newItem);
+
+        const items = Array.from(leaderboard.children);
+        items.sort((a, b) => {
+          const aTime = parseInt(a.innerText.split(" ")[2]);
+          const bTime = parseInt(b.innerText.split(" ")[2]);
+          return aTime - bTime;
+        });
+
+        leaderboard.innerHTML = "";
+        items.forEach((item) => leaderboard.appendChild(item));
+      }
+
+      function showInitialScreen() {
+        document.getElementById("gameScreen").classList.add("hidden");
+        document.getElementById("leaderboardScreen").classList.add("hidden");
+        document.getElementById("initialScreen").classList.remove("hidden");
+        document.getElementById("resultMessage").innerText = "";
+        document.getElementById("resultButtons").classList.add("hidden");
+        document.getElementById("nameInput").value = "";
+      }
+
+      function showLeaderboard() {
+        document.getElementById("gameScreen").classList.add("hidden");
+        document.getElementById("leaderboardScreen").classList.remove("hidden");
+      }
+    </script>
+  </body>
+</html>
