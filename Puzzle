@@ -161,12 +161,16 @@
       let moveCount;
       let playerName;
 
+      //Pentru name input, cand e selectat sa dispara textul "Enter name"
+
       document
         .getElementById("nameInput")
         .addEventListener("focus", function () {
           this.dataset.placeholder = this.placeholder;
           this.placeholder = "";
         });
+
+        //Si apare din nou daca este deselectata cutia fara sa se fi introdus vreun caracter
 
       document
         .getElementById("nameInput")
@@ -184,12 +188,19 @@
           return;
         }
 
+        //Dupa ce este introdus numele si selectata dimensiunea jocului, dispare ecranul initial si apare tabla de joc.
+
         document.getElementById("initialScreen").classList.add("hidden");
         document.getElementById("gameScreen").classList.remove("hidden");
+
+        //Construim tabla de joc dupa caz cu 3 4 sau 5 coloane
 
         const grid = document.getElementById("grid");
         grid.className = `grid grid-${size}x${size}`;
         generateGrid(size);
+
+        //Pornim cronometrul si contorul pentru fiecare miscare (o apasare de sageata)
+
         startTime = new Date();
         moveCount = 0;
         document.addEventListener("keydown", handleKeyPress);
@@ -197,12 +208,18 @@
 
       function generateGrid(size) {
         const grid = document.getElementById("grid");
+
+        //Stergem tabla de joc de la jocul anterior, daca exista
+
         grid.innerHTML = "";
 
         let numbers = generateSolvableGrid(size);
+
+        //Afisam numerele din problema generata anterior si le punem pe celulele tablei de joc
         numbers.forEach((num, index) => {
           const tile = document.createElement("div");
           tile.classList.add("tile");
+          //Marcam celula goala
           if (num === "") {
             tile.classList.add("empty");
             emptyCell = index;
@@ -213,12 +230,15 @@
       }
 
       function generateSolvableGrid(size) {
+
+        //Generam o solutie corecta
         const numbers = [];
         for (let i = 1; i < size * size; i++) {
           numbers.push(i);
         }
         numbers.push("");
 
+        //Amestecam solutia. Facem 500 de miscari valide aleatorii
         let emptyCell = size * size - 1;
         for (let i = 0; i < 500; i++) {
           const possibleMoves = getValidMoves(emptyCell, size);
@@ -233,6 +253,7 @@
         return numbers;
       }
 
+      //Obtinem miscarile posibile in momentul cerut
       function getValidMoves(emptyCell, size) {
         const moves = [];
         const row = Math.floor(emptyCell / size);
@@ -275,11 +296,13 @@
         const grid = document.getElementById("grid");
         const tiles = Array.from(grid.children);
 
+        //Cand facem o "miscare" practic schimbam intre ele celula goala si celula targetata.
         [tiles[index].innerText, tiles[emptyCell].innerText] = [
           tiles[emptyCell].innerText,
           tiles[index].innerText,
         ];
 
+        //Celula targetata devine celula goala, celula goala este acum plina
         tiles[index].classList.toggle("empty");
         tiles[emptyCell].classList.toggle("empty");
         emptyCell = index;
@@ -298,17 +321,26 @@
       function isValidMove(index) {
         if (index < 0 || index >= gridSize * gridSize) return false;
 
+        //Aflam pozitia celulei targetate
+
         const row = Math.floor(index / gridSize);
         const col = index % gridSize;
 
+        //Aflam pozitia celulei goale
+
         const emptyRow = Math.floor(emptyCell / gridSize);
         const emptyCol = emptyCell % gridSize;
+        
+
+        //O miscare este valida daca cele 2 celule se afla pe acelasi rand si coloane alaturate, sau pe aceeasi coloana si randuri alaturate
 
         return (
           (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
           (col === emptyCol && Math.abs(row - emptyRow) === 1)
         );
       }
+
+      //Verificam ca pe celula 0, sa avem cifra 1, pe celula 1 sa avem cifra 2 etc. si ultima celula sa fie celula goala
 
       function isSolved() {
         const tiles = Array.from(document.getElementById("grid").children);
@@ -326,6 +358,8 @@
         newItem.innerText = `${name} - ${time} seconds, ${moves} moves.`;
         newItem.classList.add("leaderboard-item");
         leaderboard.appendChild(newItem);
+
+        //Sortam clasamentul dupa timpul de rezolvare
 
         const items = Array.from(leaderboard.children);
         items.sort((a, b) => {
